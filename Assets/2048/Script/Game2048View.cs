@@ -35,4 +35,14 @@ public class Game2048View
             }
         }
     }
+
+    public void GameFail()
+    {
+        Debug.Log("游戏失败");
+    }
+
+    public void Victory()
+    {
+        Debug.Log("游戏胜利");
+    }
 }

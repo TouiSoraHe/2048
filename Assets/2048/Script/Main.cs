@@ -10,7 +10,7 @@ public class Main : MonoBehaviour
 
     private void Awake()
     {
-        game2048Mgr = new Game2048Mgr(4, FindObjectOfType<GridLayoutGroup>());
+        game2048Mgr = new Game2048Mgr(4,2048, FindObjectOfType<GridLayoutGroup>());
         game2048Mgr.Init();
     }
 

@@ -6,12 +6,16 @@ using UnityEngine;
 public class Game2048Data
 {
     private int[,] value;
+    private int victoryScore;
 
     public event Action<int[,]> onValueChange;
+    public event Action onGameFail;
+    public event Action onVictory;
 
-    public Game2048Data(int count)
+    public Game2048Data(int count,int victoryScore)
     {
         this.value = new int[count,count];
+        this.victoryScore = victoryScore;
     }
 
     public void Init()
@@ -42,6 +46,52 @@ public class Game2048Data
         TransposeWithDirection(direction);
         RandomlyGenerated();
         ValueChangeCallBack();
+        if (IsVictory())
+        {
+            onVictory?.Invoke();
+        }
+        else if (IsFail())
+        {
+            onGameFail?.Invoke();
+        }
+    }
+
+    private bool IsVictory()
+    {
+        for (int x = 0; x < value.GetLength(0); x++)
+        {
+            for (int y = 0; y < value.GetLength(1); y++)
+            {
+                if (value[x, y] == victoryScore)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private bool IsFail()
+    {
+        for (int x = 0; x < value.GetLength(0); x++)
+        {
+            for (int y = 0; y < value.GetLength(1); y++)
+            {
+                if (value[x, y] == 0)
+                {
+                    return false;
+                }
+                if (y < value.GetLength(1) - 1 && value[x, y] == value[x, y + 1])
+                {
+                    return false;
+                }
+                if (x < value.GetLength(0) - 1 && value[x, y] == value[x+1, y])
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /// <summary>
@@ -84,10 +134,6 @@ public class Game2048Data
     {
         for (int x = 0; x < value.GetLength(0); x++)
         {
-            for (int y = 0; y < value.GetLength(1); y++)
-            {
-
-            }
             List<int> tempValue = new List<int>();
             //提取非0的值
             for (int y = 0; y < value.GetLength(1); y++)
