@@ -3,9 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+public class TransformInfo
+{
+    public MoveDirection MoveDirection { get; set; }
+    public int Distance { get; set; }
+    public int BeforeValue { get; set; }
+    public int AfterValue { get; set; }
+}
+
 public class Game2048Data
 {
     private int[,] value;
+    private TransformInfo[,] transformInfo;
     private int victoryScore;
 
     public event Action<int[,]> onValueChange;
@@ -15,6 +24,7 @@ public class Game2048Data
     public Game2048Data(int count,int victoryScore)
     {
         this.value = new int[count,count];
+        this.transformInfo = new TransformInfo[count, count];
         this.victoryScore = victoryScore;
     }
 
@@ -27,12 +37,13 @@ public class Game2048Data
                 value[x,y] = 0;
             }
         }
-        RandomlyGenerated();
-        ValueChangeCallBack();
+        RandomlyGenerated(1);
     }
 
     public void Move(MoveDirection direction)
     {
+        //初始化变换信息
+        InitTransformInfo(direction);
         //通过转置数组,反转子数组,让整个数组的方向全部统一
         //转置数组
         TransposeWithDirection(direction);
@@ -44,8 +55,8 @@ public class Game2048Data
         ReverseWithDirection(direction);
         //数组转置回来
         TransposeWithDirection(direction);
-        RandomlyGenerated();
         ValueChangeCallBack();
+        RandomlyGenerated(1);
         if (IsVictory())
         {
             onVictory?.Invoke();
@@ -94,6 +105,21 @@ public class Game2048Data
         return true;
     }
 
+    private void InitTransformInfo(MoveDirection direction)
+    {
+        ForEachValue(transformInfo, (c) =>
+        {
+            if (transformInfo[c.x, c.y] == null)
+            {
+                transformInfo[c.x, c.y] = new TransformInfo();
+            }
+            transformInfo[c.x, c.y].MoveDirection = direction;
+            transformInfo[c.x, c.y].Distance = 0;
+            transformInfo[c.x, c.y].BeforeValue = value[c.x, c.y];
+            transformInfo[c.x, c.y].AfterValue = value[c.x, c.y];
+        });
+    }
+
     /// <summary>
     /// 根据移动的方向决定是否转置数组
     /// </summary>
@@ -103,6 +129,7 @@ public class Game2048Data
         if (direction == MoveDirection.Down || direction == MoveDirection.Up)
         {
             value = Transpose(value);
+            transformInfo = Transpose(transformInfo);
         }
     }
 
@@ -119,9 +146,8 @@ public class Game2048Data
                 int length = value.GetLength(1);
                 for (int y = 0; y < length / 2; y++)
                 {
-                    int temp = value[x, y];
-                    value[x, y] = value[x, length - 1 - y];
-                    value[x, length - 1 - y] = temp;
+                    Swap(ref value[x, y], ref value[x, length - 1 - y]);
+                    Swap(ref transformInfo[x, y], ref transformInfo[x, length - 1 - y]);
                 }
             }
         }
@@ -135,30 +161,44 @@ public class Game2048Data
         for (int x = 0; x < value.GetLength(0); x++)
         {
             List<int> tempValue = new List<int>();
+            List<TransformInfo> transformInfos = new List<TransformInfo>();
             //提取非0的值
+            int zeroCount = 0;
             for (int y = 0; y < value.GetLength(1); y++)
             {
                 if (value[x, y] != 0)
                 {
                     tempValue.Add(value[x, y]);
+                    transformInfo[x, y].Distance = zeroCount;
+                    transformInfos.Add(transformInfo[x, y]);
                     value[x, y] = 0;
+                }
+                else
+                {
+                    zeroCount++;
                 }
             }
             //判断相邻,对相邻且相同的值合并
+            int mergeCount = 0;
             for (int y = 1; y < tempValue.Count; y++)
             {
                 if (tempValue[y] == tempValue[y - 1])
                 {
                     tempValue[y - 1] *= 2;
                     tempValue[y] = 0;
+                    transformInfos[y].AfterValue = tempValue[y];
+                    transformInfos[y - 1].AfterValue = tempValue[y - 1];
+                    mergeCount++;
                 }
+                transformInfos[y].Distance += mergeCount;
             }
             //合并后的值还原到原数组中
-            for (int y = 0; y < tempValue.Count; y++)
+            for (int z = 0, y = 0; z < tempValue.Count; z++)
             {
-                if (tempValue[y] != 0)
+                if (tempValue[z] != 0)
                 {
-                    value[x, y] = tempValue[y];
+                    value[x, y] = tempValue[z];
+                    y++;
                 }
             }
         }
@@ -168,8 +208,9 @@ public class Game2048Data
     /// 在空白区域随机生成2或者4
     /// </summary>
     /// <returns></returns>
-    private bool RandomlyGenerated()
+    private void RandomlyGenerated(int count)
     {
+        InitTransformInfo(MoveDirection.Left);
         List<Vector2Int> axis = new List<Vector2Int>();
         ForEachValue(value,(coordinate) =>
         {
@@ -178,15 +219,16 @@ public class Game2048Data
                 axis.Add(coordinate);
             }
         });
-        if (axis.Count > 0)
+        for (int i = 0; i < count && axis.Count > 0; i++)
         {
             int index = UnityEngine.Random.Range(0, axis.Count);
             int x = axis[index].x;
             int y = axis[index].y;
-            value[x,y] = UnityEngine.Random.Range(1, 3) * 2;
-            return true;
+            value[x, y] = UnityEngine.Random.Range(1, 3) * 2;
+            transformInfo[x, y].AfterValue = value[x, y];
+            axis.RemoveAt(index);
         }
-        return false;
+        ValueChangeCallBack();
     }
 
     private void ValueChangeCallBack()
@@ -226,6 +268,13 @@ public class Game2048Data
             }
         }
         return newValue;
+    }
+
+    private void Swap<T>(ref T a, ref T b)
+    {
+        T temp = a;
+        a = b;
+        b = temp;
     }
 
 }
