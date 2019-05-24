@@ -16,6 +16,7 @@ public class Game2048Data
     private int[,] value;
     private TransformInfo[,] transformInfo;
     private int victoryScore;
+    private bool init = false;
 
     public event Action<int[,]> onValueChange;
     public event Action onGameFail;
@@ -38,10 +39,16 @@ public class Game2048Data
             }
         }
         RandomlyGenerated(1);
+        init = true;
     }
 
     public void Move(MoveDirection direction)
     {
+        if (!init)
+        {
+            Debug.LogError("尚未初始化");
+            return;
+        }
         //初始化变换信息
         InitTransformInfo(direction);
         //通过转置数组,反转子数组,让整个数组的方向全部统一
@@ -107,7 +114,7 @@ public class Game2048Data
 
     private void InitTransformInfo(MoveDirection direction)
     {
-        ForEachValue(transformInfo, (c) =>
+        Util.ForEachValue(transformInfo, (c) =>
         {
             if (transformInfo[c.x, c.y] == null)
             {
@@ -117,6 +124,7 @@ public class Game2048Data
             transformInfo[c.x, c.y].Distance = 0;
             transformInfo[c.x, c.y].BeforeValue = value[c.x, c.y];
             transformInfo[c.x, c.y].AfterValue = value[c.x, c.y];
+            return true;
         });
     }
 
@@ -128,8 +136,8 @@ public class Game2048Data
     {
         if (direction == MoveDirection.Down || direction == MoveDirection.Up)
         {
-            value = Transpose(value);
-            transformInfo = Transpose(transformInfo);
+            Util.Transpose(value);
+            Util.Transpose(transformInfo);
         }
     }
 
@@ -146,8 +154,8 @@ public class Game2048Data
                 int length = value.GetLength(1);
                 for (int y = 0; y < length / 2; y++)
                 {
-                    Swap(ref value[x, y], ref value[x, length - 1 - y]);
-                    Swap(ref transformInfo[x, y], ref transformInfo[x, length - 1 - y]);
+                    Util.Swap(ref value[x, y], ref value[x, length - 1 - y]);
+                    Util.Swap(ref transformInfo[x, y], ref transformInfo[x, length - 1 - y]);
                 }
             }
         }
@@ -158,6 +166,7 @@ public class Game2048Data
     /// </summary>
     private void MergeValue()
     {
+
         for (int x = 0; x < value.GetLength(0); x++)
         {
             List<int> tempValue = new List<int>();
@@ -210,14 +219,30 @@ public class Game2048Data
     /// <returns></returns>
     private void RandomlyGenerated(int count)
     {
+        if (init)
+        {
+            bool moved = false;
+            //如果之前没有方块移动过，则不允许随机生成
+            Util.ForEachValue(transformInfo, (c) =>
+            {
+                if (transformInfo[c.x, c.y].Distance > 0)
+                {
+                    moved = true;
+                    return false;
+                }
+                return true;
+            });
+            if (!moved) return;
+        }
         InitTransformInfo(MoveDirection.Left);
         List<Vector2Int> axis = new List<Vector2Int>();
-        ForEachValue(value,(coordinate) =>
+        Util.ForEachValue(value,(coordinate) =>
         {
             if (value[coordinate.x,coordinate.y] == 0)
             {
                 axis.Add(coordinate);
             }
+            return true;
         });
         for (int i = 0; i < count && axis.Count > 0; i++)
         {
@@ -234,47 +259,6 @@ public class Game2048Data
     private void ValueChangeCallBack()
     {
         onValueChange?.Invoke(value);
-    }
-
-    /// <summary>
-    /// 遍历二维数组,返回数组的坐标
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="array"></param>
-    /// <param name="callBack"></param>
-    private void ForEachValue<T>(T[,] array, Action<Vector2Int> callBack)
-    {
-        for (int i = 0; i < array.GetLength(0); i++)
-        {
-            for (int j = 0; j < array.GetLength(1); j++)
-            {
-                callBack?.Invoke(new Vector2Int(i,j));
-            }
-        }
-    }
-
-    /// <summary>
-    /// 转置二维数组
-    /// </summary>
-    /// <param name=""></param>
-    private T[,] Transpose<T>(T[,] value)
-    {
-        T[,] newValue = new T[value.GetLength(1), value.GetLength(0)];
-        for (int x = 0; x < value.GetLength(0); x++)
-        {
-            for (int y = 0; y < value.GetLength(1); y++)
-            {
-                newValue[y, x] = value[x, y];
-            }
-        }
-        return newValue;
-    }
-
-    private void Swap<T>(ref T a, ref T b)
-    {
-        T temp = a;
-        a = b;
-        b = temp;
     }
 
 }
