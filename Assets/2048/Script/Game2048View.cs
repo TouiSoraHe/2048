@@ -20,7 +20,7 @@ public class Game2048View
         }
     }
 
-    public void Refresh(int[,] data)
+    public void Refresh(int[,] data,TransformInfo[,] transformInfos)
     {
         int i = 0;
         int j = 0;
@@ -34,6 +34,50 @@ public class Game2048View
                 i++;
             }
         }
+        for (int x = 0; x < transformInfos.GetLength(0); x++)
+        {
+            string str = "";
+            for (int y = 0; y < transformInfos.GetLength(1); y++)
+            {
+                TransformInfo item = transformInfos[x, y];
+                str += "\t" + item.BeforeValue;
+                if (item.Distance > 0)
+                {
+                    switch (item.MoveDirection)
+                    {
+                        case MoveDirection.Left:
+                            str += "←";
+                            break;
+                        case MoveDirection.Right:
+                            str += "→";
+                            break;
+                        case MoveDirection.Up:
+                            str += "↑";
+                            break;
+                        case MoveDirection.Down:
+                            str += "↓";
+                            break;
+                        default:
+                            break;
+                    }
+                    str += item.Distance;
+                }
+                if (item.AfterValue != item.BeforeValue)
+                {
+                    if (item.BeforeValue < item.AfterValue)
+                    {
+                        str += "变大" + item.AfterValue;
+                    }
+                    else
+                    {
+                        str += "消除" + item.AfterValue;
+                    }
+                }
+                str += "\t";
+            }
+            Debug.Log(str + "\n");
+        }
+        Debug.Log("-------------------------------------------------------------------------\n");
     }
 
     public void GameFail()
