@@ -5,35 +5,38 @@ using UnityEngine.UI;
 
 public class Game2048View
 {
-    private GridLayoutGroup grid;
+    private Transform root;
     private int count;
+    private Item[,] items;
 
-    public Game2048View(GridLayoutGroup grid, int count)
+    public Game2048View(Transform root,Vector2 size, int count)
     {
-        this.grid = grid;
+        this.root = root;
         this.count = count;
-        RectTransform rectTransform = grid.GetComponent<RectTransform>();
-        grid.cellSize = new Vector2(rectTransform.sizeDelta.x / count, rectTransform.sizeDelta.y / count);
-        for (int i = 0; i < count * count; i++)
+        float width = size.x / count;
+        float height = size.y / count;
+        items = new Item[count, count];
+        for (int x = 0; x < count; x++)
         {
-            GameObject.Instantiate(Resources.Load("Prefab/Item"), grid.transform);
+            for (int y = 0; y < count; y++)
+            {
+                GameObject item = Object.Instantiate(Resources.Load<GameObject>("Prefab/Item"), root.transform);
+                items[x, y] = item.GetComponent<Item>();
+                items[x, y].name = x + "," + y;
+                RectTransform rect = items[x, y].GetComponent<RectTransform>();
+                rect.sizeDelta = new Vector2(width, height);
+                rect.localPosition = new Vector3(y * width, x * height*-1, 0);                
+            }
         }
     }
 
     public void Refresh(int[,] data,TransformInfo[,] transformInfos)
     {
-        int i = 0;
-        int j = 0;
-        foreach (Transform item in grid.transform)
+        Util.ForEachValue(items, (c) => 
         {
-            item.GetComponent<Item>().SetValue(data[i,j]);
-            j++;
-            if (j == count)
-            {
-                j = 0;
-                i++;
-            }
-        }
+            items[c.x, c.y].SetValue(data[c.x, c.y]);
+            return true;
+        });
         for (int x = 0; x < transformInfos.GetLength(0); x++)
         {
             string str = "";

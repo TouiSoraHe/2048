@@ -10,9 +10,9 @@ public class Game2048Mgr
     private bool init = false;
     private bool gameOver = true;
 
-    public Game2048Mgr(int count, int victoryScore, GridLayoutGroup grid)
+    public Game2048Mgr(int count, int victoryScore, Transform root,Vector2 size)
     {
-        view = new Game2048View(grid, count);
+        view = new Game2048View(root, size,count);
         data = new Game2048Data(count, victoryScore);
         data.onValueChange += view.Refresh;
         data.onGameFail += OnGameFail;

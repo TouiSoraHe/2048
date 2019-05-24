@@ -62,8 +62,12 @@ public class Game2048Data
         ReverseWithDirection(direction);
         //数组转置回来
         TransposeWithDirection(direction);
-        ValueChangeCallBack();
-        RandomlyGenerated(1);
+        //如果移动了则回调并随机生成新的方块
+        if (IsMoved())
+        {
+            ValueChangeCallBack();
+            RandomlyGenerated(1);
+        }
         if (IsVictory())
         {
             onVictory?.Invoke();
@@ -213,27 +217,27 @@ public class Game2048Data
         }
     }
 
+    private bool IsMoved()
+    {
+        bool moved = false;
+        Util.ForEachValue(transformInfo, (c) =>
+        {
+            if (transformInfo[c.x, c.y].Distance > 0)
+            {
+                moved = true;
+                return false;
+            }
+            return true;
+        });
+        return moved;
+    }
+
     /// <summary>
     /// 在空白区域随机生成2或者4
     /// </summary>
     /// <returns></returns>
     private void RandomlyGenerated(int count)
     {
-        if (init)
-        {
-            bool moved = false;
-            //如果之前没有方块移动过，则不允许随机生成
-            Util.ForEachValue(transformInfo, (c) =>
-            {
-                if (transformInfo[c.x, c.y].Distance > 0)
-                {
-                    moved = true;
-                    return false;
-                }
-                return true;
-            });
-            if (!moved) return;
-        }
         InitTransformInfo(MoveDirection.Left);
         List<Vector2Int> axis = new List<Vector2Int>();
         Util.ForEachValue(value,(coordinate) =>
