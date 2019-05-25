@@ -127,6 +127,10 @@ public class Game2048View : IDisposable
             {
                 DestroyItem(item.Value);
             }
+            foreach (var item in backgroundItem)
+            {
+                DestroyItem(item);
+            }
         }
     }
 }
