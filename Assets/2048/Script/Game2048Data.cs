@@ -9,6 +9,7 @@ public class TransformInfo
     public int Distance { get; set; }
     public int BeforeValue { get; set; }
     public int AfterValue { get; set; }
+
 }
 
 public class Game2048Data
@@ -18,7 +19,7 @@ public class Game2048Data
     private int victoryScore;
     private bool init = false;
 
-    public event Action<int[,], TransformInfo[,]> onValueChange;
+    public event Action<TransformInfo[,]> onValueChange;
     public event Action onGameFail;
     public event Action onVictory;
 
@@ -38,7 +39,7 @@ public class Game2048Data
                 value[x,y] = 0;
             }
         }
-        RandomlyGenerated(1);
+        RandomlyGenerated(2);
         init = true;
     }
 
@@ -262,7 +263,7 @@ public class Game2048Data
 
     private void ValueChangeCallBack()
     {
-        onValueChange?.Invoke(value,transformInfo);
+        onValueChange?.Invoke(transformInfo);
     }
 
 }

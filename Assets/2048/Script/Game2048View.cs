@@ -8,79 +8,59 @@ public class Game2048View
     private Transform root;
     private int count;
     private Item[,] items;
+    private Dictionary<Vector2Int, Item> coordinate2Item = new Dictionary<Vector2Int, Item>();
+    private Dictionary<Vector2Int, Item> coordinate2ItemTemp = new Dictionary<Vector2Int, Item>();
+    private Vector2 itemSize;
 
     public Game2048View(Transform root,Vector2 size, int count)
     {
         this.root = root;
         this.count = count;
-        float width = size.x / count;
-        float height = size.y / count;
-        items = new Item[count, count];
-        for (int x = 0; x < count; x++)
-        {
-            for (int y = 0; y < count; y++)
-            {
-                GameObject item = Object.Instantiate(Resources.Load<GameObject>("Prefab/Item"), root.transform);
-                items[x, y] = item.GetComponent<Item>();
-                items[x, y].name = x + "," + y;
-                RectTransform rect = items[x, y].GetComponent<RectTransform>();
-                rect.sizeDelta = new Vector2(width, height);
-                rect.localPosition = new Vector3(y * width, x * height*-1, 0);                
-            }
-        }
+        itemSize = new Vector2(size.x / count, size.y / count);
+        items = new Item[count,count];
     }
 
-    public void Refresh(int[,] data,TransformInfo[,] transformInfos)
+    public void Refresh(TransformInfo[,] transformInfos)
     {
-        Util.ForEachValue(items, (c) => 
+        //将随机生成的方块产生出来，对需要移动的方块进行移动，对AfterValue==0（需要销毁）的方块进行销毁，对值发生改变的方块修改值
+        Util.ForEachValue(transformInfos, (c) => 
         {
-            items[c.x, c.y].SetValue(data[c.x, c.y]);
+            TransformInfo info = transformInfos[c.x, c.y];
+            //如果一个方块既没有移动，数值也没发生变化则代表该方法没发生过变化，直接跳过
+            if (info.Distance == 0 && info.AfterValue == info.BeforeValue) return true;
+            if (info.BeforeValue == 0)
+            {
+                coordinate2Item[c] = CreateItem(c);
+            }
+            Item item = coordinate2Item[c];
+            item.Move(info.MoveDirection, info.Distance);
+            if (info.AfterValue == 0)
+            {
+                DestroyItem(item);
+            }
+            else if(info.AfterValue != info.BeforeValue)
+            {
+                item.SetValue(info.AfterValue);
+            }
             return true;
         });
-        for (int x = 0; x < transformInfos.GetLength(0); x++)
+        //修改变换后方块的坐标值，以便下次变换能找到该方块
+        coordinate2ItemTemp.Clear();
+        foreach (var item in coordinate2Item)
         {
-            string str = "";
-            for (int y = 0; y < transformInfos.GetLength(1); y++)
+            TransformInfo info = transformInfos[item.Key.x, item.Key.y];
+            //如果一个方块变换的目标值为0，代表该方块已经被销毁了，不需要在保存了
+            if (info.AfterValue != 0)
             {
-                TransformInfo item = transformInfos[x, y];
-                str += "\t" + item.BeforeValue;
-                if (item.Distance > 0)
-                {
-                    switch (item.MoveDirection)
-                    {
-                        case MoveDirection.Left:
-                            str += "←";
-                            break;
-                        case MoveDirection.Right:
-                            str += "→";
-                            break;
-                        case MoveDirection.Up:
-                            str += "↑";
-                            break;
-                        case MoveDirection.Down:
-                            str += "↓";
-                            break;
-                        default:
-                            break;
-                    }
-                    str += item.Distance;
-                }
-                if (item.AfterValue != item.BeforeValue)
-                {
-                    if (item.BeforeValue < item.AfterValue)
-                    {
-                        str += "变大" + item.AfterValue;
-                    }
-                    else
-                    {
-                        str += "消除" + item.AfterValue;
-                    }
-                }
-                str += "\t";
+                Vector2Int target = item.Key + Dirction(info.MoveDirection, info.Distance);
+                coordinate2ItemTemp[target] = item.Value;
             }
-            Debug.Log(str + "\n");
         }
-        Debug.Log("-------------------------------------------------------------------------\n");
+        coordinate2Item.Clear();
+        foreach (var item in coordinate2ItemTemp)
+        {
+            coordinate2Item.Add(item.Key, item.Value);
+        }
     }
 
     public void GameFail()
@@ -91,5 +71,39 @@ public class Game2048View
     public void Victory()
     {
         Debug.Log("游戏胜利");
+    }
+
+    private Item CreateItem(Vector2Int coordinate)
+    {
+        Item item = ItemPool.Instance.GetItem();
+        item.transform.SetParent(root,false);
+        RectTransform rect = item.GetComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(itemSize.x, itemSize.y);
+        rect.localPosition = new Vector3(coordinate.y * itemSize.x, coordinate.x * itemSize.y * -1, 0);
+        item.SetValue(0);
+        return item;
+    }
+
+    private Vector2Int Dirction(MoveDirection direction,int distance)
+    {
+        if (distance == 0) return new Vector2Int(0,0);
+        switch (direction)
+        {
+            case MoveDirection.Left:
+                return new Vector2Int(0, -1 * distance);
+            case MoveDirection.Right:
+                return new Vector2Int(0, 1 * distance);
+            case MoveDirection.Up:
+                return new Vector2Int(-1 * distance, 0);
+            case MoveDirection.Down:
+                return new Vector2Int(1 * distance, 0);
+            default:
+                return new Vector2Int(0, 0);
+        }
+    }
+
+    private void DestroyItem(Item item)
+    {
+        ItemPool.Instance.RemoveItem(item);
     }
 }
