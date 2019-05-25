@@ -1,23 +1,35 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Game2048View
+public class Game2048View : IDisposable
 {
     private Transform root;
     private int count;
     private Item[,] items;
-    private Dictionary<Vector2Int, Item> coordinate2Item = new Dictionary<Vector2Int, Item>();
-    private Dictionary<Vector2Int, Item> coordinate2ItemTemp = new Dictionary<Vector2Int, Item>();
+    private List<Item> backgroundItem;
+    private Dictionary<Vector2Int, Item> coordinate2Item ;
+    private Dictionary<Vector2Int, Item> coordinate2ItemTemp;
     private Vector2 itemSize;
 
-    public Game2048View(Transform root,Vector2 size, int count)
+    public Game2048View(Transform root, Vector2 size, int count)
     {
         this.root = root;
         this.count = count;
         itemSize = new Vector2(size.x / count, size.y / count);
-        items = new Item[count,count];
+        items = new Item[count, count];
+        coordinate2Item = new Dictionary<Vector2Int, Item>();
+        coordinate2ItemTemp = new Dictionary<Vector2Int, Item>();
+        backgroundItem = new List<Item>();
+        for (int x = 0; x < count; x++)
+        {
+            for (int y = 0; y < count; y++)
+            {
+                backgroundItem.Add(CreateItem(new Vector2Int(x, y)));
+            }
+        }
     }
 
     public void Refresh(TransformInfo[,] transformInfos)
@@ -105,5 +117,16 @@ public class Game2048View
     private void DestroyItem(Item item)
     {
         ItemPool.Instance.RemoveItem(item);
+    }
+
+    public void Dispose()
+    {
+        if (coordinate2Item != null)
+        {
+            foreach (var item in coordinate2Item)
+            {
+                DestroyItem(item.Value);
+            }
+        }
     }
 }

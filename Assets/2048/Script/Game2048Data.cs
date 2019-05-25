@@ -12,7 +12,7 @@ public class TransformInfo
 
 }
 
-public class Game2048Data
+public class Game2048Data : IDisposable
 {
     private int[,] value;
     private TransformInfo[,] transformInfo;
@@ -266,4 +266,8 @@ public class Game2048Data
         onValueChange?.Invoke(transformInfo);
     }
 
+    public void Dispose()
+    {
+        
+    }
 }

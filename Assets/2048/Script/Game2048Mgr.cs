@@ -1,9 +1,10 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Game2048Mgr
+public class Game2048Mgr : IDisposable
 {
     private Game2048Data data;
     private Game2048View view;
@@ -12,11 +13,23 @@ public class Game2048Mgr
 
     public Game2048Mgr(int count, int victoryScore, Transform root,Vector2 size)
     {
-        view = new Game2048View(root, size,count);
+        view = new Game2048View(root, size, count);
         data = new Game2048Data(count, victoryScore);
+        AddEvent();
+    }
+
+    private void AddEvent()
+    {
         data.onValueChange += view.Refresh;
         data.onGameFail += OnGameFail;
         data.onVictory += OnVictory;
+    }
+
+    private void RemoveEvent()
+    {
+        data.onValueChange -= view.Refresh;
+        data.onGameFail -= OnGameFail;
+        data.onVictory -= OnVictory;
     }
 
     private void OnVictory()
@@ -36,6 +49,13 @@ public class Game2048Mgr
         init = true;
         gameOver = false;
         data.Init();
+    }
+
+    public void Dispose()
+    {
+        RemoveEvent();
+        data.Dispose();
+        view.Dispose();
     }
 
     public void Update()
