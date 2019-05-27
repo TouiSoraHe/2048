@@ -10,6 +10,22 @@ public class TransformInfo
     public int BeforeValue { get; set; }
     public int AfterValue { get; set; }
 
+    public TransformInfo()
+    {
+    }
+
+    public TransformInfo(MoveDirection moveDirection, int distance, int beforeValue, int afterValue)
+    {
+        MoveDirection = moveDirection;
+        Distance = distance;
+        BeforeValue = beforeValue;
+        AfterValue = afterValue;
+    }
+
+    public TransformInfo Clone()
+    {
+        return new TransformInfo(MoveDirection, Distance, BeforeValue, AfterValue);
+    }
 }
 
 public class Game2048Data : IDisposable

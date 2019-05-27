@@ -1,17 +1,40 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class Game2048View : IDisposable
 {
+    /// <summary>
+    /// 方块所在的根节点
+    /// </summary>
     private Transform root;
+
+    /// <summary>
+    /// 生成方块的长宽数量
+    /// </summary>
     private int count;
-    private Item[,] items;
+
+    /// <summary>
+    /// 仅仅用作背景方块
+    /// </summary>
     private List<Item> backgroundItem;
-    private Dictionary<Vector2Int, Item> coordinate2Item ;
+
+    /// <summary>
+    /// 通过坐标轴找到对应的方块
+    /// </summary>
+    private Dictionary<Vector2Int, Item> coordinate2Item;
+
+    /// <summary>
+    /// 方块变换后,更新坐标时的临时空间
+    /// </summary>
     private Dictionary<Vector2Int, Item> coordinate2ItemTemp;
+
+    /// <summary>
+    /// 方块的大小
+    /// </summary>
     private Vector2 itemSize;
 
     public Game2048View(Transform root, Vector2 size, int count)
@@ -19,7 +42,6 @@ public class Game2048View : IDisposable
         this.root = root;
         this.count = count;
         itemSize = new Vector2(size.x / count, size.y / count);
-        items = new Item[count, count];
         coordinate2Item = new Dictionary<Vector2Int, Item>();
         coordinate2ItemTemp = new Dictionary<Vector2Int, Item>();
         backgroundItem = new List<Item>();
@@ -27,7 +49,7 @@ public class Game2048View : IDisposable
         {
             for (int y = 0; y < count; y++)
             {
-                backgroundItem.Add(CreateItem(new Vector2Int(x, y)));
+                backgroundItem.Add(Item.CreateItem(new Vector2Int(x, y), root, itemSize));
             }
         }
     }
@@ -35,27 +57,35 @@ public class Game2048View : IDisposable
     public void Refresh(TransformInfo[,] transformInfos)
     {
         //将随机生成的方块产生出来，对需要移动的方块进行移动，对AfterValue==0（需要销毁）的方块进行销毁，对值发生改变的方块修改值
-        Util.ForEachValue(transformInfos, (c) => 
+        Util.ForEachValue(transformInfos, (c) =>
         {
             TransformInfo info = transformInfos[c.x, c.y];
             //如果一个方块既没有移动，数值也没发生变化则代表该方法没发生过变化，直接跳过
             if (info.Distance == 0 && info.AfterValue == info.BeforeValue) return true;
             if (info.BeforeValue == 0)
             {
-                coordinate2Item[c] = CreateItem(c);
+                coordinate2Item[c] = Item.CreateItem(c, root, itemSize);
             }
-            Item item = coordinate2Item[c];
-            item.Move(info.MoveDirection, info.Distance);
-            if (info.AfterValue == 0)
+            int? distance = null;
+            MoveDirection? moveDirection = null;
+            if (info.Distance > 0)
             {
-                DestroyItem(item);
+                distance = info.Distance;
+                moveDirection = info.MoveDirection;
             }
-            else if(info.AfterValue != info.BeforeValue)
+            int? value = null;
+            if (info.AfterValue != info.BeforeValue)
             {
-                item.SetValue(info.AfterValue);
+                value = info.AfterValue;
             }
+            coordinate2Item[c].PlayAnimation(moveDirection, distance, value);
             return true;
         });
+        UpdateCoordinate(transformInfos);
+    }
+
+    private void UpdateCoordinate(TransformInfo[,] transformInfos)
+    {
         //修改变换后方块的坐标值，以便下次变换能找到该方块
         coordinate2ItemTemp.Clear();
         foreach (var item in coordinate2Item)
@@ -85,20 +115,9 @@ public class Game2048View : IDisposable
         Debug.Log("游戏胜利");
     }
 
-    private Item CreateItem(Vector2Int coordinate)
+    private Vector2Int Dirction(MoveDirection direction, int distance)
     {
-        Item item = ItemPool.Instance.GetItem();
-        item.transform.SetParent(root,false);
-        RectTransform rect = item.GetComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(itemSize.x, itemSize.y);
-        rect.localPosition = new Vector3(coordinate.y * itemSize.x, coordinate.x * itemSize.y * -1, 0);
-        item.SetValue(0);
-        return item;
-    }
-
-    private Vector2Int Dirction(MoveDirection direction,int distance)
-    {
-        if (distance == 0) return new Vector2Int(0,0);
+        if (distance == 0) return new Vector2Int(0, 0);
         switch (direction)
         {
             case MoveDirection.Left:
@@ -114,22 +133,17 @@ public class Game2048View : IDisposable
         }
     }
 
-    private void DestroyItem(Item item)
-    {
-        ItemPool.Instance.RemoveItem(item);
-    }
-
     public void Dispose()
     {
         if (coordinate2Item != null)
         {
             foreach (var item in coordinate2Item)
             {
-                DestroyItem(item.Value);
+                Item.DestroyItem(item.Value);
             }
             foreach (var item in backgroundItem)
             {
-                DestroyItem(item);
+                Item.DestroyItem(item);
             }
         }
     }
