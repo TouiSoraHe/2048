@@ -49,7 +49,7 @@ public class Item : MonoBehaviour
             { 2,HtmlStringToColor("#eee4da")},
             { 4,HtmlStringToColor("#ede0c8")},
             { 8,HtmlStringToColor("#f2b179")},
-            { 16,HtmlStringToColor("#f2b179")},
+            { 16,HtmlStringToColor("#f59563")},
             { 32,HtmlStringToColor("#f67c5f")},
             { 64,HtmlStringToColor("#f65e3b")},
             { 128,HtmlStringToColor("#edcf72")},

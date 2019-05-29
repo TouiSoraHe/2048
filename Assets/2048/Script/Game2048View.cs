@@ -37,8 +37,9 @@ public class Game2048View : IDisposable
     /// </summary>
     private Vector2 itemSize;
 
-    public Game2048View(Transform root, Vector2 size, int count)
+    public void Init(Transform root, Vector2 size, int count)
     {
+        Dispose();
         this.root = root;
         this.count = count;
         itemSize = new Vector2(size.x / count, size.y / count);
@@ -54,7 +55,7 @@ public class Game2048View : IDisposable
         }
     }
 
-    public void Refresh(TransformInfo[,] transformInfos)
+    public void Refresh(TransformInfo[,] transformInfos,int score)
     {
         //将随机生成的方块产生出来，对需要移动的方块进行移动，对AfterValue==0（需要销毁）的方块进行销毁，对值发生改变的方块修改值
         Util.ForEachValue(transformInfos, (c) =>
@@ -105,16 +106,6 @@ public class Game2048View : IDisposable
         }
     }
 
-    public void GameFail()
-    {
-        Debug.Log("游戏失败");
-    }
-
-    public void Victory()
-    {
-        Debug.Log("游戏胜利");
-    }
-
     private Vector2Int Dirction(MoveDirection direction, int distance)
     {
         if (distance == 0) return new Vector2Int(0, 0);
@@ -141,10 +132,15 @@ public class Game2048View : IDisposable
             {
                 Item.DestroyItem(item.Value);
             }
+            coordinate2Item.Clear();
+        }
+        if (backgroundItem != null)
+        {
             foreach (var item in backgroundItem)
             {
                 Item.DestroyItem(item);
             }
+            backgroundItem.Clear();
         }
     }
 }

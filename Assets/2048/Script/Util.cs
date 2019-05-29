@@ -1,10 +1,39 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 public static class Util
 {
+    public static Vector2Int GetResolution()
+    {
+
+#if UNITY_EDITOR
+        return GetGameViewSize();
+#else
+        return new Vector2Int(Screen.currentResolution.width, Screen.currentResolution.height);
+#endif
+    }
+
+    /// <summary>
+    /// 获取GameView的分辨率
+    /// </summary>
+    /// <returns></returns>
+    public static Vector2Int GetGameViewSize()
+    {
+        System.Type T = System.Type.GetType("UnityEditor.GameView,UnityEditor");
+        System.Reflection.MethodInfo GetMainGameView = T.GetMethod("GetMainGameView", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        System.Object Res = GetMainGameView.Invoke(null, null);
+        var gameView = (UnityEditor.EditorWindow)Res;
+        var prop = gameView.GetType().GetProperty("currentGameViewSize", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var gvsize = prop.GetValue(gameView, new object[0] { });
+        var gvSizeType = gvsize.GetType();
+        int height = (int)gvSizeType.GetProperty("height", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).GetValue(gvsize, new object[0] { });
+        int width = (int)gvSizeType.GetProperty("width", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).GetValue(gvsize, new object[0] { });
+        return new Vector2Int(width, height);
+    }
+
     /// <summary>
     /// 转置二维数组
     /// </summary>
@@ -20,6 +49,12 @@ public static class Util
         }
     }
 
+    /// <summary>
+    /// 交换两个变量的值
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="a"></param>
+    /// <param name="b"></param>
     public static void Swap<T>(ref T a, ref T b)
     {
         T temp = a;

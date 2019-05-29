@@ -33,21 +33,18 @@ public class Game2048Data : IDisposable
     private int[,] value;
     private TransformInfo[,] transformInfo;
     private int victoryScore;
-    private bool init = false;
+    private int score = 0;
 
-    public event Action<TransformInfo[,]> onValueChange;
+    public event Action<TransformInfo[,],int> onValueChange;
     public event Action onGameFail;
     public event Action onVictory;
 
-    public Game2048Data(int count,int victoryScore)
+    public void Init(int count, int victoryScore)
     {
-        this.value = new int[count,count];
+        this.value = new int[count, count];
         this.transformInfo = new TransformInfo[count, count];
         this.victoryScore = victoryScore;
-    }
-
-    public void Init()
-    {
+        score = 0;
         for (int x = 0; x < value.GetLength(0); x++)
         {
             for (int y = 0; y < value.GetLength(1); y++)
@@ -56,16 +53,26 @@ public class Game2048Data : IDisposable
             }
         }
         RandomlyGenerated(2);
-        init = true;
+    }
+
+    public void Init(int[,] data, int victoryScore, int score)
+    {
+        this.value = new int[data.GetLength(0), data.GetLength(1)];
+        this.transformInfo = new TransformInfo[data.GetLength(0), data.GetLength(1)];
+        this.victoryScore = victoryScore;
+        this.score = score;
+        InitTransformInfo(MoveDirection.Left);
+        Util.ForEachValue(data,(c)=> 
+        {
+            value[c.x, c.y] = data[c.x, c.y];
+            transformInfo[c.x, c.y].AfterValue = value[c.x, c.y];
+            return true;
+        });
+        ValueChangeCallBack();
     }
 
     public void Move(MoveDirection direction)
     {
-        if (!init)
-        {
-            Debug.LogError("尚未初始化");
-            return;
-        }
         //初始化变换信息
         InitTransformInfo(direction);
         //通过转置数组,反转子数组,让整个数组的方向全部统一
@@ -214,6 +221,7 @@ public class Game2048Data : IDisposable
             {
                 if (tempValue[y] == tempValue[y - 1])
                 {
+                    score += tempValue[y - 1];
                     tempValue[y - 1] *= 2;
                     tempValue[y] = 0;
                     transformInfos[y].AfterValue = tempValue[y];
@@ -279,7 +287,7 @@ public class Game2048Data : IDisposable
 
     private void ValueChangeCallBack()
     {
-        onValueChange?.Invoke(transformInfo);
+        onValueChange?.Invoke(transformInfo,score);
     }
 
     public void Dispose()
