@@ -191,6 +191,10 @@ public class Item : MonoBehaviour
 
     public static void DestroyItem(Item item)
     {
+        if (item.sequence != null)
+        {
+            item.sequence.Complete(true);
+        }
         ItemPool.Instance.RemoveItem(item);
     }
 
